@@ -1,0 +1,176 @@
+para leer un archico buscamos el inodo al que se corresponde(leyendo el contenido del directorio al qu epertenece y voy al almacen y nos dice en que bloque) 
+
+libfs para la parte extra de cache de inodos
+
+lookup: (buscar cualquier inodo de un directorio) construyendo la herrquia de inodos en memoria
+
+	recibe un struct inode el inodo padre, porque para buscar el inodo saber quien es el inodo padre, otro struct dentry que representa la dupla nombre de fichero y numero de inodo y flags que no vamos a usar
+
+-al buscar el inodo hay que acceder al inodo padre
+
+me creo una inode info, el campo i private metes la info del inodo que se quiera (i private es de tipo puntero a caracter entonces metes lo que sea) asi ya guardamos ahi la info del inodo padre
+
+- i_sb, hemos guardado el superbloque parar leer el bloque qu econtine  la info del directorio padre
+
+- con sb_bread le paso ese superbloque
+
+- el bloque que tengo que leer saco de parent info que tine el data block number con el numero de bloque que contiene.
+
+- puntero aux para recorrer el content del directorio (*record)
+- accedo al contenido del bloque y hacemos el cast apropiado 
+- for hasta el numero de archivos que continene el directorio padre
+- en cada vuelta compruebo el nombre dell fichero, strcmp devuleve 0 si son iguales
+- ya tenemos el dir record entry, llamamaos a get inodo  que recibe el superbloque y el inodo 
+- inode_init_owner(inodo, directorio padre, el modo(un campo de los inodos es el modo (permisoso))
+-llamo a l add para guardarlo en la herrquia de inodos (excepto el raiz que se crea con otro especial no el d_add)
+-----------------------------
+- la funcion get inode recibe elsb y el numero de nodo (funcion auxiliar)
+
+	sacamos los datos del alamcen y construye un indo en memoria
+
+			si el moodo edel inode info dice que es un acarpeta en el campo del inodo le 	asigno la operaciojn dir operations
+			si es fichero regular le asigno en el campo fop file operations
+
+
+	en iprivate guaradar indo_info para que quede en ememmoria y no acceder tol rato
+
+--------------------------------------------------------------------------------
+
+funcion create (para crear un archivo es decir crea un inodod que apunte a ese archivo
+
+	1. crear nuevo inodo
+	2. modificar contenido del inoddo padre para decir que el nuevo fichero se corresponde con el nuevo inodo
+
+	3. modificar la info del inodo para el campo int children count se increemente
+
+
+	1: - en la info del sb hay un contador de indos y cada vez que creo un indodo el numero de inodo sera contadordeinodo +1;
+
+	si count ha llegado al maximo si count vale 64 no creamo suno nuevo return -1 y si va bien return 0
+
+	aqui todo seran archivos esta funcion solo es para archivos
+
+	en que bloque lo ponemos? esta ocupado el 1, 2 y 3
+	creamo sun auxiliar parar encontrar el primero bloque libre y guradarlo en esta de create en el data block number
+
+	el add inode info lo añade a disco
+		node_info += assoofs_sb->inodes_count; //apunta al principio del alamacen
+		inode_info += assoofs_sb->inodes_count; //apunta al final
+
+	2: 
+		dir_contents += parent_inode_info->dir_children_count; //avanzo el puntero como tantos elementos tenga asiq ue va al final
+
+	strcpy(dir_contents->filename, dentry->d_name.name); //para asignar porque aqui no asignan cadenas directamente
+
+	3:
+		increementar inodes_count;
+		save inode info para actualizar el contenido del inode info
+
+		
+--------------------------------------------------------------------------------------------
+funcion getfreeblock (saca del sb la info que me interesa que la hemos guaradado en fsinfo
+	-leo el free block (bit 1 esta libre y 0 ocupado)
+		empiezo a recorrer desde 2 porque esta en el 1 la info del sb y en el 2 el almacem de indos y el 3 el directorio raiz asiq se puede empezar por i =3
+	1111111111111.....0000
+	0.................0100
+y se hace un and  y el 1 se va moviendo en cada iter a la izq y cuando al hacer el and 1 y 1 de 1 es dist de 0 el resultado de esas dos filas.
+	para actualizar el free block es el complemento a 1 de la segunda fila y cambia el resultado de la and y ahora guardar ese cambio en el disco con save sb info
+
+----------------------------------------------------------------------------------
+funcion save_sb_info
+
+	-lee el sb
+	-bh->b_data = .... //escribimos
+	dspues marcamos bloques sucios y sincronizamos
+	
+-------------------------------------------------------------------------------------
+funcion save_ inode _info //actualiza la info del indodo
+
+ //BUSCA INODE INFO EN EL ALAMCEN
+
+
+
+
+
+_______________________________________________
+
+recibe dodne empieza el alamcen de inodos la funcion search_indode_info y nos dice en que pos esta el indode info
+	
+	avanza miestras no sean iguales y count es para que no llegue al final 
+
+	if (start->inode_no == search->inode_no) //start llego a un sitio donde esa info se corresponde pues ya devolvemos.
+
+----------------------------------------------------------------------------------------------
+	
+FUNCION PARAR CREAR CARPETAS
+
+- al asignar campo fop le damos dir operations
+- carpeta_name = dir_children_count;
+- para asignar el modo usar ese flag parar que lo marque como carpeta
+
+	cambiar mkdir y lo demas igual que create
+
+-----------------------------------------------------------------------------------------------------
+
+29/05/19
+
+-------------------------------------------------------------------------------------------
+
+struc_dir_context representa el indice del contenido del directorio
+
+__________________________________________
+
+ITERATEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+strict file* es un descriptor
+
+EL FILP TINE F_PATH CON D_INODE QUE ES PARA IDENTIFICAR AL INODO
+inode->i_private es info persistente del inodo
+
+cada vez que acceda al directorio no hace falta acceder a iterate solo una vez entonces comprobamos si pos es 0 esta vacio y si es distinto de 0 es que el contexto ya se habia inicializado y devolvemos 0.
+
+mirar si lo que lo nos pasan en filp es un directorio, si no es devolvemos error
+
+si todo va bien construimos el contexto : leer el bloque con el contenido del directorio y como sabemos que las variables de dentro son de tal tipo se hace cast a ese tipo (atencion record esta sin declarar)
+
+recorremos y por cada archivo llamamos a dir_emit que añade entradas al contexto y le pasamos el contexto el nombre longitud de fichero max y el inodo al que pertenece y una cte que no interesa.
+
+-------------------------------------------------------------------------
+READ
+
+lee el contenido de un fichero recibiendo el descriprtor de fichero, el buffer donde se guarda lo que leo, el size, y desde donde empieza a leer.
+
+if (*ppos >= inode_info->file_size) return 0; //para saber si hemos llegado al final
+
+struct buffer_head *bh;
+char *buffer;
+bh = sb_bread(filp->f_path.dentry->d_inode->i_sb, inode_info->data_block_number);
+buffer = (char *)bh->b_data; //ahora es un puntero al contenido del fichero
+
+
+int nbytes;
+nbytes = min((size_t) inode_info->file_size, len); // Hay que comparar len con el tama~
+no del fichero por si llegamos al
+final del fichero para no desbordar
+copy_to_user(buf, buffer, nbytes);//copiamos algo del kernel a algo del usuario por eso no vale usar 	mcpy
+
+*ppos += nbytes; //se aumenta cada vez que se haga una operacion de lectura 
+return nbytes; //numero de bytes leidos puede ser lenght o menos 
+
+---------------------------------------------------------------------------------------------
+WRITE
+
+parecido al read pero copy_from_user que rrecibe los mismos argumentos pero cambiados de orden porque recibe lo leido
+
+cada vez que se escribe hay que aumentar la longitud (file_size)
+
+se hace buffer += *ppos porque apunta al principio del bloque y nosotros vamos a escribir al final
+
+y actualizar la info en disco con lo que esta en memoria principal con assoofs_save_inode_info (actualizamos el descriptor)
+
+devuelve la longitud de lo escrito
+
+------------------------------------------------------------------------------------------------
+
+
+
