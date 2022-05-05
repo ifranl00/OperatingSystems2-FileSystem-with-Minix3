@@ -1,14 +1,12 @@
  
- /******************* Datos personales *********************/
+/******************* Personal information *********************/
  
- -Nombre : IRENE FRANCISCO LÓPEZ
- -DNI : 02773007N
- -Email : ifranl00@estudiantes.unileon.es
+ -Name: IRENE FRANCISCO LÓPEZ
+ -Email: ifranl00@estudiantes.unileon.es
  
- /****************** Detalles a considerar ****************/
+ /******************** Details to consider ****************/
  
- - He ulitilizado la función current_time(inode) en vez de la constante CURRENTTIME por incompatibilidad (utilizo ubuntu 18.10 en VMware)
- - Me funcionan correctamente los pasos de prueba que incluye el guión.
- - No he realizado ninguna parte opcional.
+ - I have used the current_time(inode) function instead of the CURRENTTIME constant due to incompatibility (I use ubuntu 18.10 on VMware)
+ - The test steps included in the script work correctly for me.
  
  
